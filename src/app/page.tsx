@@ -1,77 +1,99 @@
+"use client";
+
+import { useState } from "react";
+import InfoRow from "@/components/InfoRow";
 import Header from "@/components/Header";
 import SectionCard from "@/components/SectionCard";
 import PrimaryButton from "@/components/PrimaryButton";
+import Checklist from "@/components/Checklist";
+import briefing from "@/data/briefing";
+
+type ChecklistItem = {
+  name: string;
+  checked: boolean;
+};
 
 export default function Home() {
-  return (
-    <main className="max-w-md mx-auto p-5 bg-stone-50 min-h-screen">
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(
+    briefing.checklist
+  );
 
+  const completedCount = checklist.filter((item) => item.checked).length;
+  const progress =
+    checklist.length === 0
+      ? 0
+      : Math.round((completedCount / checklist.length) * 100);
+
+  const isReady = completedCount === checklist.length;
+
+  const toggleItem = (itemName: string) => {
+    setChecklist((prev) =>
+      prev.map((current) =>
+        current.name === itemName
+          ? {
+              ...current,
+              checked: !current.checked,
+            }
+          : current
+      )
+    );
+  };
+
+  return (
+    <main className="mx-auto min-h-screen max-w-md bg-stone-50 p-5">
       <Header />
 
       <SectionCard title="🏔 내일 산행">
-        <h3 className="text-2xl font-bold">
-          설악산
-        </h3>
-
-        <p className="text-gray-500">
-          2026.08.09 (토)
-        </p>
-
-        <p className="font-semibold text-green-700">
-          D-1
-        </p>
+        <h3 className="text-2xl font-bold">{briefing.mountain}</h3>
+        <p className="text-gray-500">{briefing.date}</p>
+        <p className="font-semibold text-green-700">{briefing.dday}</p>
       </SectionCard>
 
       <SectionCard title="🌤 날씨">
-        <p className="text-3xl font-bold">
-          18℃
-        </p>
-
-        <p>강수확률 10%</p>
-
-        <p>★★★★☆</p>
-
-        <p className="text-green-700 font-semibold">
-          산행 적합
+        <p className="text-3xl font-bold">{briefing.weather.temp}</p>
+        <p>{briefing.weather.rain}</p>
+        <p>{briefing.weather.rating}</p>
+        <p className="font-semibold text-green-700">
+          {briefing.weather.status}
         </p>
       </SectionCard>
 
       <SectionCard title="🥾 AI 추천 코스">
-        <p className="font-bold">
-          오색 → 대청봉
-        </p>
+        <p className="font-bold">{briefing.course.name}</p>
+        <p>{briefing.course.duration}</p>
 
-        <p>6시간 20분</p>
+        <InfoRow label="거리" value={briefing.course.distance} />
+        <InfoRow label="고도" value={briefing.course.elevation} />
+        <InfoRow label="난이도" value={briefing.course.difficulty} />
 
-        <div className="flex gap-2 mt-4">
-          <button className="px-4 py-2 bg-gray-100 rounded-xl">
+        <div className="mt-4 flex gap-2">
+          <button className="rounded-xl bg-gray-100 px-4 py-2 transition hover:bg-gray-200">
             지도 보기
           </button>
-
-          <button className="px-4 py-2 bg-gray-100 rounded-xl">
+          <button className="rounded-xl bg-gray-100 px-4 py-2 transition hover:bg-gray-200">
             다른 코스
           </button>
         </div>
       </SectionCard>
 
       <SectionCard title="🚗 이동">
-        <p>🚗 자동차 2시간 40분</p>
-        <p className="mt-2">
-          🚇 대중교통 보기
-        </p>
+        <p>🚗 {briefing.transport.car}</p>
+        <p className="mt-2">🚇 대중교통 보기</p>
       </SectionCard>
 
       <SectionCard title="🎒 준비물">
-        <ul className="space-y-2">
-          <li>☑ 물</li>
-          <li>☑ 등산스틱</li>
-          <li>☑ 헤드랜턴</li>
-          <li>☑ 바람막이</li>
-        </ul>
+        <Checklist
+          items={checklist}
+          onToggle={toggleItem}
+          completedCount={completedCount}
+          progress={progress}
+        />
       </SectionCard>
 
-      <PrimaryButton text="출발 준비 완료" />
-
+      <PrimaryButton
+        text={isReady ? "출발 준비 완료" : "준비가 아직 남았습니다"}
+        disabled={!isReady}
+      />
     </main>
   );
 }
