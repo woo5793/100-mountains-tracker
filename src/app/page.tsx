@@ -14,6 +14,13 @@ type ChecklistItem = {
   checked: boolean;
 };
 
+const defaultChecklist: ChecklistItem[] = [
+  { name: "물", checked: false },
+  { name: "등산스틱", checked: false },
+  { name: "간식", checked: false },
+  { name: "바람막이", checked: false },
+];
+
 export default function Home() {
   const [selectedMountain, setSelectedMountain] = useState(
     briefings[0].mountain
@@ -21,9 +28,38 @@ export default function Home() {
 
   const [searchText, setSearchText] = useState("");
 
+  const existingBriefing = briefings.find(
+    (item) => item.mountain === selectedMountain
+  );
+
   const selectedBriefing =
-    briefings.find((item) => item.mountain === selectedMountain) ??
-    briefings[0];
+    existingBriefing ?? {
+      mountain: selectedMountain,
+      date: "날짜를 선택해 주세요",
+      dday: "",
+
+      weather: {
+        temp: "-",
+        rain: "-",
+        rating: "",
+        status: "날씨 정보 준비 중",
+      },
+
+      course: {
+        name: "추천 코스 준비 중",
+        duration: "-",
+        distance: "-",
+        elevation: "-",
+        difficulty: "-",
+      },
+
+      transport: {
+        car: "이동정보 준비 중",
+        transit: "대중교통 정보 준비 중",
+      },
+
+      checklist: defaultChecklist,
+    };
 
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
     selectedBriefing.checklist
@@ -31,6 +67,10 @@ export default function Home() {
 
   const filteredMountains = mountains.filter((mountain) =>
     mountain.name.includes(searchText.trim())
+  );
+
+  const selectedMountainInfo = mountains.find(
+    (mountain) => mountain.name === selectedMountain
   );
 
   const completedCount = checklist.filter(
@@ -57,16 +97,23 @@ export default function Home() {
     );
   };
 
-  const changeMountain = (mountain: string) => {
+  const changeMountain = (mountainName: string) => {
+    setSelectedMountain(mountainName);
+    setSearchText("");
+
     const newBriefing = briefings.find(
-      (item) => item.mountain === mountain
+      (item) => item.mountain === mountainName
     );
 
-    if (!newBriefing) return;
-
-    setSelectedMountain(mountain);
-    setChecklist(newBriefing.checklist);
-    setSearchText("");
+    if (newBriefing) {
+      setChecklist(newBriefing.checklist);
+    } else {
+      setChecklist(
+        defaultChecklist.map((item) => ({
+          ...item,
+        }))
+      );
+    }
   };
 
   return (
@@ -74,7 +121,6 @@ export default function Home() {
       <Header />
 
       <SectionCard title="🏔 내일 산행">
-
         <input
           type="text"
           value={searchText}
@@ -115,7 +161,10 @@ export default function Home() {
           className="mb-3 w-full rounded-xl border border-gray-300 bg-white p-3 font-semibold"
         >
           {mountains.map((mountain) => (
-            <option key={mountain.id} value={mountain.name}>
+            <option
+              key={mountain.id}
+              value={mountain.name}
+            >
               {mountain.name}
             </option>
           ))}
@@ -125,13 +174,22 @@ export default function Home() {
           {selectedBriefing.mountain}
         </h3>
 
-        <p className="text-gray-500">
+        {selectedMountainInfo && (
+          <p className="mt-1 text-sm text-gray-500">
+            {selectedMountainInfo.region} ·{" "}
+            {selectedMountainInfo.height}m
+          </p>
+        )}
+
+        <p className="mt-2 text-gray-500">
           {selectedBriefing.date}
         </p>
 
-        <p className="font-semibold text-green-700">
-          {selectedBriefing.dday}
-        </p>
+        {selectedBriefing.dday && (
+          <p className="font-semibold text-green-700">
+            {selectedBriefing.dday}
+          </p>
+        )}
       </SectionCard>
 
       <SectionCard title="🌤 날씨">
@@ -143,9 +201,7 @@ export default function Home() {
           강수확률 {selectedBriefing.weather.rain}
         </p>
 
-        <p>
-          {selectedBriefing.weather.rating}
-        </p>
+        <p>{selectedBriefing.weather.rating}</p>
 
         <p className="font-semibold text-green-700">
           {selectedBriefing.weather.status}
@@ -157,9 +213,7 @@ export default function Home() {
           {selectedBriefing.course.name}
         </p>
 
-        <p>
-          {selectedBriefing.course.duration}
-        </p>
+        <p>{selectedBriefing.course.duration}</p>
 
         <InfoRow
           label="거리"

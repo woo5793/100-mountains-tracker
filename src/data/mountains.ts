@@ -24,6 +24,11 @@ const mountains: Mountain[] = [
     height: 740.2,
     region: "서울·경기",
   },
+  {
+    id: 4,
+    name: "한라산",
+    height: 1947.3,
+    region: "제주",
+  },
 ];
-
 export default mountains;
