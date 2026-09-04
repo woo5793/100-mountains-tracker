@@ -7,6 +7,7 @@ import SectionCard from "@/components/SectionCard";
 import PrimaryButton from "@/components/PrimaryButton";
 import Checklist from "@/components/Checklist";
 import briefings from "@/data/briefing";
+import mountains from "@/data/mountains";
 
 type ChecklistItem = {
   name: string;
@@ -14,16 +15,27 @@ type ChecklistItem = {
 };
 
 export default function Home() {
-  const [selectedMountain, setSelectedMountain] = useState(briefings[0].mountain);
+  const [selectedMountain, setSelectedMountain] = useState(
+    briefings[0].mountain
+  );
+
+  const [searchText, setSearchText] = useState("");
 
   const selectedBriefing =
-    briefings.find((item) => item.mountain === selectedMountain) ?? briefings[0];
+    briefings.find((item) => item.mountain === selectedMountain) ??
+    briefings[0];
 
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
     selectedBriefing.checklist
   );
 
-  const completedCount = checklist.filter((item) => item.checked).length;
+  const filteredMountains = mountains.filter((mountain) =>
+    mountain.name.includes(searchText.trim())
+  );
+
+  const completedCount = checklist.filter(
+    (item) => item.checked
+  ).length;
 
   const progress =
     checklist.length === 0
@@ -46,15 +58,15 @@ export default function Home() {
   };
 
   const changeMountain = (mountain: string) => {
-    setSelectedMountain(mountain);
-
     const newBriefing = briefings.find(
       (item) => item.mountain === mountain
     );
 
-    if (newBriefing) {
-      setChecklist(newBriefing.checklist);
-    }
+    if (!newBriefing) return;
+
+    setSelectedMountain(mountain);
+    setChecklist(newBriefing.checklist);
+    setSearchText("");
   };
 
   return (
@@ -62,14 +74,49 @@ export default function Home() {
       <Header />
 
       <SectionCard title="🏔 내일 산행">
+
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="산 이름 검색"
+          className="mb-3 w-full rounded-xl border border-gray-300 bg-white p-3"
+        />
+
+        {searchText && (
+          <div className="mb-4 rounded-xl border border-gray-200 bg-white p-2">
+            {filteredMountains.length > 0 ? (
+              filteredMountains.map((mountain) => (
+                <button
+                  key={mountain.id}
+                  onClick={() => changeMountain(mountain.name)}
+                  className="flex w-full items-center justify-between rounded-lg p-3 text-left hover:bg-gray-100"
+                >
+                  <span className="font-semibold">
+                    {mountain.name}
+                  </span>
+
+                  <span className="text-sm text-gray-500">
+                    {mountain.region} · {mountain.height}m
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="p-3 text-sm text-gray-500">
+                검색 결과가 없습니다.
+              </p>
+            )}
+          </div>
+        )}
+
         <select
           value={selectedMountain}
           onChange={(e) => changeMountain(e.target.value)}
           className="mb-3 w-full rounded-xl border border-gray-300 bg-white p-3 font-semibold"
         >
-          {briefings.map((item) => (
-            <option key={item.mountain} value={item.mountain}>
-              {item.mountain}
+          {mountains.map((mountain) => (
+            <option key={mountain.id} value={mountain.name}>
+              {mountain.name}
             </option>
           ))}
         </select>
@@ -92,9 +139,13 @@ export default function Home() {
           {selectedBriefing.weather.temp}
         </p>
 
-        <p>강수확률 {selectedBriefing.weather.rain}</p>
+        <p>
+          강수확률 {selectedBriefing.weather.rain}
+        </p>
 
-        <p>{selectedBriefing.weather.rating}</p>
+        <p>
+          {selectedBriefing.weather.rating}
+        </p>
 
         <p className="font-semibold text-green-700">
           {selectedBriefing.weather.status}
@@ -106,7 +157,9 @@ export default function Home() {
           {selectedBriefing.course.name}
         </p>
 
-        <p>{selectedBriefing.course.duration}</p>
+        <p>
+          {selectedBriefing.course.duration}
+        </p>
 
         <InfoRow
           label="거리"
@@ -135,7 +188,10 @@ export default function Home() {
       </SectionCard>
 
       <SectionCard title="🚗 이동">
-        <p>🚗 {selectedBriefing.transport.car}</p>
+        <p>
+          🚗 {selectedBriefing.transport.car}
+        </p>
+
         <p className="mt-2">
           🚇 {selectedBriefing.transport.transit}
         </p>
@@ -151,7 +207,11 @@ export default function Home() {
       </SectionCard>
 
       <PrimaryButton
-        text={isReady ? "출발 준비 완료" : "준비가 아직 남았습니다"}
+        text={
+          isReady
+            ? "출발 준비 완료"
+            : "준비가 아직 남았습니다"
+        }
         disabled={!isReady}
       />
     </main>
