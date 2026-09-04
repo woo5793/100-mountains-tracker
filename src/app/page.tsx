@@ -35,7 +35,7 @@ const regionOptions: RegionFilter[] = [
 
 export default function Home() {
   const [selectedMountainId, setSelectedMountainId] = useState(
-    mountains[0].id
+    "seoraksan"
   );
 
   const [searchText, setSearchText] = useState("");
@@ -83,7 +83,7 @@ export default function Home() {
 
   const initialBriefing =
     briefings.find(
-      (item) => item.mountainId === mountains[0].id
+      (item) => item.mountainId === "seoraksan"
     ) ?? briefings[0];
 
   const [checklist, setChecklist] =
