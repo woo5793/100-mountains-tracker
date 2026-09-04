@@ -7,12 +7,14 @@ import SectionCard from "@/components/SectionCard";
 import PrimaryButton from "@/components/PrimaryButton";
 import Checklist from "@/components/Checklist";
 import briefings from "@/data/briefing";
-import mountains from "@/data/mountains";
+import mountains, { MountainRegion } from "@/data/mountains";
 
 type ChecklistItem = {
   name: string;
   checked: boolean;
 };
+
+type RegionFilter = "전체" | MountainRegion;
 
 const defaultChecklist: ChecklistItem[] = [
   { name: "물", checked: false },
@@ -21,20 +23,38 @@ const defaultChecklist: ChecklistItem[] = [
   { name: "바람막이", checked: false },
 ];
 
+const regionOptions: RegionFilter[] = [
+  "전체",
+  "서울·경기",
+  "강원",
+  "충청",
+  "전라",
+  "경상",
+  "제주",
+];
+
 export default function Home() {
-  const [selectedMountain, setSelectedMountain] = useState(
-    briefings[0].mountain
+  const [selectedMountainId, setSelectedMountainId] = useState(
+    mountains[0].id
   );
 
   const [searchText, setSearchText] = useState("");
+  const [selectedRegion, setSelectedRegion] =
+    useState<RegionFilter>("전체");
+
+  const selectedMountainInfo =
+    mountains.find(
+      (mountain) => mountain.id === selectedMountainId
+    ) ?? mountains[0];
 
   const existingBriefing = briefings.find(
-    (item) => item.mountain === selectedMountain
+    (item) => item.mountainId === selectedMountainId
   );
 
   const selectedBriefing =
     existingBriefing ?? {
-      mountain: selectedMountain,
+      mountainId: selectedMountainId,
+      mountain: selectedMountainInfo.name,
       date: "날짜를 선택해 주세요",
       dday: "",
 
@@ -61,17 +81,31 @@ export default function Home() {
       checklist: defaultChecklist,
     };
 
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(
-    selectedBriefing.checklist
-  );
+  const initialBriefing =
+    briefings.find(
+      (item) => item.mountainId === mountains[0].id
+    ) ?? briefings[0];
 
-  const filteredMountains = mountains.filter((mountain) =>
-    mountain.name.includes(searchText.trim())
-  );
+  const [checklist, setChecklist] =
+    useState<ChecklistItem[]>(
+      initialBriefing.checklist
+    );
 
-  const selectedMountainInfo = mountains.find(
-    (mountain) => mountain.name === selectedMountain
-  );
+  const filteredMountains = mountains.filter((mountain) => {
+    const matchesSearch = mountain.name.includes(
+      searchText.trim()
+    );
+
+    const matchesRegion =
+      selectedRegion === "전체" ||
+      mountain.regions.includes(selectedRegion);
+
+    return matchesSearch && matchesRegion;
+  });
+
+  const showMountainList =
+    searchText.trim() !== "" ||
+    selectedRegion !== "전체";
 
   const completedCount = checklist.filter(
     (item) => item.checked
@@ -80,9 +114,13 @@ export default function Home() {
   const progress =
     checklist.length === 0
       ? 0
-      : Math.round((completedCount / checklist.length) * 100);
+      : Math.round(
+          (completedCount / checklist.length) * 100
+        );
 
-  const isReady = completedCount === checklist.length;
+  const isReady =
+    checklist.length > 0 &&
+    completedCount === checklist.length;
 
   const toggleItem = (itemName: string) => {
     setChecklist((prev) =>
@@ -97,16 +135,20 @@ export default function Home() {
     );
   };
 
-  const changeMountain = (mountainName: string) => {
-    setSelectedMountain(mountainName);
+  const changeMountain = (mountainId: string) => {
+    setSelectedMountainId(mountainId);
     setSearchText("");
 
     const newBriefing = briefings.find(
-      (item) => item.mountain === mountainName
+      (item) => item.mountainId === mountainId
     );
 
     if (newBriefing) {
-      setChecklist(newBriefing.checklist);
+      setChecklist(
+        newBriefing.checklist.map((item) => ({
+          ...item,
+        }))
+      );
     } else {
       setChecklist(
         defaultChecklist.map((item) => ({
@@ -120,7 +162,7 @@ export default function Home() {
     <main className="mx-auto min-h-screen max-w-md bg-stone-50 p-5">
       <Header />
 
-      <SectionCard title="🏔 내일 산행">
+      <SectionCard title="🏔 산 선택">
         <input
           type="text"
           value={searchText}
@@ -129,21 +171,49 @@ export default function Home() {
           className="mb-3 w-full rounded-xl border border-gray-300 bg-white p-3"
         />
 
-        {searchText && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {regionOptions.map((region) => (
+            <button
+              key={region}
+              onClick={() => setSelectedRegion(region)}
+              className={
+                selectedRegion === region
+                  ? "rounded-full bg-green-700 px-3 py-2 text-sm font-semibold text-white"
+                  : "rounded-full bg-gray-100 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200"
+              }
+            >
+              {region}
+            </button>
+          ))}
+        </div>
+
+        {showMountainList && (
           <div className="mb-4 rounded-xl border border-gray-200 bg-white p-2">
+            <p className="px-3 py-2 text-sm text-gray-500">
+              검색 결과 {filteredMountains.length}개
+            </p>
+
             {filteredMountains.length > 0 ? (
               filteredMountains.map((mountain) => (
                 <button
                   key={mountain.id}
-                  onClick={() => changeMountain(mountain.name)}
+                  onClick={() =>
+                    changeMountain(mountain.id)
+                  }
                   className="flex w-full items-center justify-between rounded-lg p-3 text-left hover:bg-gray-100"
                 >
-                  <span className="font-semibold">
-                    {mountain.name}
-                  </span>
+                  <div>
+                    <p className="font-semibold">
+                      {mountain.name}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      {mountain.location}
+                    </p>
+                  </div>
 
                   <span className="text-sm text-gray-500">
-                    {mountain.region} · {mountain.height}m
+                    {mountain.height.toLocaleString()}m
                   </span>
                 </button>
               ))
@@ -155,41 +225,34 @@ export default function Home() {
           </div>
         )}
 
-        <select
-          value={selectedMountain}
-          onChange={(e) => changeMountain(e.target.value)}
-          className="mb-3 w-full rounded-xl border border-gray-300 bg-white p-3 font-semibold"
-        >
-          {mountains.map((mountain) => (
-            <option
-              key={mountain.id}
-              value={mountain.name}
-            >
-              {mountain.name}
-            </option>
-          ))}
-        </select>
-
-        <h3 className="text-2xl font-bold">
-          {selectedBriefing.mountain}
-        </h3>
-
-        {selectedMountainInfo && (
-          <p className="mt-1 text-sm text-gray-500">
-            {selectedMountainInfo.region} ·{" "}
-            {selectedMountainInfo.height}m
+        <div className="rounded-xl bg-green-50 p-4">
+          <p className="text-xs font-semibold text-green-700">
+            선택한 산
           </p>
-        )}
 
-        <p className="mt-2 text-gray-500">
-          {selectedBriefing.date}
-        </p>
+          <h3 className="mt-1 text-2xl font-bold">
+            {selectedMountainInfo.name}
+          </h3>
 
-        {selectedBriefing.dday && (
-          <p className="font-semibold text-green-700">
-            {selectedBriefing.dday}
+          <p className="mt-1 text-sm text-gray-600">
+            {selectedMountainInfo.location}
           </p>
-        )}
+
+          <p className="text-sm text-gray-600">
+            해발{" "}
+            {selectedMountainInfo.height.toLocaleString()}m
+          </p>
+
+          <p className="mt-2 text-gray-500">
+            {selectedBriefing.date}
+          </p>
+
+          {selectedBriefing.dday && (
+            <p className="font-semibold text-green-700">
+              {selectedBriefing.dday}
+            </p>
+          )}
+        </div>
       </SectionCard>
 
       <SectionCard title="🌤 날씨">

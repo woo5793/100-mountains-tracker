@@ -1,5 +1,6 @@
 const briefings = [
   {
+    mountainId: "seoraksan",
     mountain: "설악산",
     date: "2026.09.05",
     dday: "D-1",
@@ -33,6 +34,7 @@ const briefings = [
   },
 
   {
+    mountainId: "bukhansan",
     mountain: "북한산",
     date: "2026.09.05",
     dday: "D-1",
@@ -66,6 +68,7 @@ const briefings = [
   },
 
   {
+    mountainId: "dobongsan",
     mountain: "도봉산",
     date: "2026.09.05",
     dday: "D-1",
