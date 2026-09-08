@@ -33,6 +33,50 @@ const regionOptions: RegionFilter[] = [
   "제주",
 ];
 
+const formatDate = (dateString: string) => {
+  if (!dateString) return "날짜를 선택해 주세요";
+
+  const [year, month, day] = dateString.split("-");
+
+  return `${year}.${month}.${day}`;
+};
+
+const calculateDday = (dateString: string) => {
+  if (!dateString) return "";
+
+  const [year, month, day] = dateString
+    .split("-")
+    .map(Number);
+
+  const hikingDate = new Date(
+    year,
+    month - 1,
+    day
+  );
+
+  const today = new Date();
+
+  hikingDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const difference =
+    hikingDate.getTime() - today.getTime();
+
+  const days = Math.round(
+    difference / (1000 * 60 * 60 * 24)
+  );
+
+  if (days === 0) {
+    return "D-Day";
+  }
+
+  if (days > 0) {
+    return `D-${days}`;
+  }
+
+  return `D+${Math.abs(days)}`;
+};
+
 export default function Home() {
   const [selectedMountainId, setSelectedMountainId] = useState(
     "seoraksan"
@@ -41,6 +85,11 @@ export default function Home() {
   const [searchText, setSearchText] = useState("");
   const [selectedRegion, setSelectedRegion] =
     useState<RegionFilter>("전체");
+
+    const [hikingDate, setHikingDate] = useState("");
+
+    const formattedHikingDate = formatDate(hikingDate);
+    const dday = calculateDday(hikingDate);
 
   const selectedMountainInfo =
     mountains.find(
@@ -243,15 +292,31 @@ export default function Home() {
             {selectedMountainInfo.height.toLocaleString()}m
           </p>
 
-          <p className="mt-2 text-gray-500">
-            {selectedBriefing.date}
+          <div className="mt-4">
+           <label className="mb-2 block text-sm font-semibold text-gray-700">
+             📅 산행 날짜
+           </label>
+
+           <input
+             type="date"
+             value={hikingDate}
+             onChange={(e) =>
+               setHikingDate(e.target.value)
+             }
+             className="w-full rounded-xl border border-gray-300 bg-white p-3"
+            />
+          </div>
+
+          <p className="mt-3 text-gray-500">
+            {formattedHikingDate}
           </p>
 
-          {selectedBriefing.dday && (
+          {dday && (
             <p className="font-semibold text-green-700">
-              {selectedBriefing.dday}
+              {dday}
             </p>
           )}
+
         </div>
       </SectionCard>
 
