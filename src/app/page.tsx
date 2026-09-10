@@ -19,6 +19,7 @@ type RegionFilter = "전체" | MountainRegion;
 type SavedPlan = {
   mountainId: string;
   hikingDate: string;
+  checklist: ChecklistItem[];
 };
 
 const STORAGE_KEY = "summit100-hiking-plan";
@@ -130,26 +131,37 @@ export default function Home() {
           setSelectedMountainId(
             savedPlan.mountainId
           );
-
-          const savedBriefing =
-            briefings.find(
-              (item) =>
-                item.mountainId ===
-                savedPlan.mountainId
-            );
-
-          if (savedBriefing) {
+        
+          if (
+            Array.isArray(savedPlan.checklist) &&
+            savedPlan.checklist.length > 0
+          ) {
             setChecklist(
-              savedBriefing.checklist.map(
-                (item) => ({ ...item })
-              )
+              savedPlan.checklist.map((item) => ({
+                ...item,
+              }))
             );
           } else {
-            setChecklist(
-              defaultChecklist.map(
-                (item) => ({ ...item })
-              )
-            );
+            const savedBriefing =
+              briefings.find(
+                (item) =>
+                  item.mountainId ===
+                  savedPlan.mountainId
+              );
+        
+            if (savedBriefing) {
+              setChecklist(
+                savedBriefing.checklist.map(
+                  (item) => ({ ...item })
+                )
+              );
+            } else {
+              setChecklist(
+                defaultChecklist.map(
+                  (item) => ({ ...item })
+                )
+              );
+            }
           }
         }
 
@@ -179,6 +191,7 @@ export default function Home() {
     const planToSave: SavedPlan = {
       mountainId: selectedMountainId,
       hikingDate,
+      checklist,
     };
 
     localStorage.setItem(
@@ -188,6 +201,7 @@ export default function Home() {
   }, [
     selectedMountainId,
     hikingDate,
+    checklist,
     storageLoaded,
   ]);
 
