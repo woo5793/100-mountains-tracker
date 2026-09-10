@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import InfoRow from "@/components/InfoRow";
 import Header from "@/components/Header";
 import SectionCard from "@/components/SectionCard";
@@ -15,6 +15,13 @@ type ChecklistItem = {
 };
 
 type RegionFilter = "전체" | MountainRegion;
+
+type SavedPlan = {
+  mountainId: string;
+  hikingDate: string;
+};
+
+const STORAGE_KEY = "summit100-hiking-plan";
 
 const defaultChecklist: ChecklistItem[] = [
   { name: "물", checked: false },
@@ -78,27 +85,127 @@ const calculateDday = (dateString: string) => {
 };
 
 export default function Home() {
-  const [selectedMountainId, setSelectedMountainId] = useState(
-    "seoraksan"
-  );
+  const [selectedMountainId, setSelectedMountainId] =
+    useState("seoraksan");
 
   const [searchText, setSearchText] = useState("");
+
   const [selectedRegion, setSelectedRegion] =
     useState<RegionFilter>("전체");
 
-    const [hikingDate, setHikingDate] = useState("");
+  const [hikingDate, setHikingDate] = useState("");
 
-    const formattedHikingDate = formatDate(hikingDate);
-    const dday = calculateDday(hikingDate);
+  const [storageLoaded, setStorageLoaded] =
+    useState(false);
+
+  const initialBriefing =
+    briefings.find(
+      (item) => item.mountainId === "seoraksan"
+    ) ?? briefings[0];
+
+  const [checklist, setChecklist] =
+    useState<ChecklistItem[]>(
+      initialBriefing.checklist
+    );
+
+  /*
+   * 앱을 처음 열 때
+   * 브라우저에 저장된 산행 계획 불러오기
+   */
+  useEffect(() => {
+    try {
+      const savedData =
+        localStorage.getItem(STORAGE_KEY);
+
+      if (savedData) {
+        const savedPlan: SavedPlan =
+          JSON.parse(savedData);
+
+        const mountainExists = mountains.some(
+          (mountain) =>
+            mountain.id === savedPlan.mountainId
+        );
+
+        if (mountainExists) {
+          setSelectedMountainId(
+            savedPlan.mountainId
+          );
+
+          const savedBriefing =
+            briefings.find(
+              (item) =>
+                item.mountainId ===
+                savedPlan.mountainId
+            );
+
+          if (savedBriefing) {
+            setChecklist(
+              savedBriefing.checklist.map(
+                (item) => ({ ...item })
+              )
+            );
+          } else {
+            setChecklist(
+              defaultChecklist.map(
+                (item) => ({ ...item })
+              )
+            );
+          }
+        }
+
+        if (savedPlan.hikingDate) {
+          setHikingDate(
+            savedPlan.hikingDate
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        "저장된 산행 계획을 불러오지 못했습니다.",
+        error
+      );
+    }
+
+    setStorageLoaded(true);
+  }, []);
+
+  /*
+   * 산이나 날짜가 변경되면
+   * 브라우저에 자동 저장
+   */
+  useEffect(() => {
+    if (!storageLoaded) return;
+
+    const planToSave: SavedPlan = {
+      mountainId: selectedMountainId,
+      hikingDate,
+    };
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(planToSave)
+    );
+  }, [
+    selectedMountainId,
+    hikingDate,
+    storageLoaded,
+  ]);
 
   const selectedMountainInfo =
     mountains.find(
-      (mountain) => mountain.id === selectedMountainId
-    ) ?? mountains[0];
+      (mountain) =>
+        mountain.id === selectedMountainId
+    ) ??
+    mountains.find(
+      (mountain) =>
+        mountain.id === "seoraksan"
+    )!;
 
-  const existingBriefing = briefings.find(
-    (item) => item.mountainId === selectedMountainId
-  );
+  const existingBriefing =
+    briefings.find(
+      (item) =>
+        item.mountainId === selectedMountainId
+    );
 
   const selectedBriefing =
     existingBriefing ?? {
@@ -130,79 +237,93 @@ export default function Home() {
       checklist: defaultChecklist,
     };
 
-  const initialBriefing =
-    briefings.find(
-      (item) => item.mountainId === "seoraksan"
-    ) ?? briefings[0];
+  const formattedHikingDate =
+    formatDate(hikingDate);
 
-  const [checklist, setChecklist] =
-    useState<ChecklistItem[]>(
-      initialBriefing.checklist
-    );
+  const dday =
+    calculateDday(hikingDate);
 
-  const filteredMountains = mountains.filter((mountain) => {
-    const matchesSearch = mountain.name.includes(
-      searchText.trim()
-    );
+  const filteredMountains =
+    mountains.filter((mountain) => {
+      const matchesSearch =
+        mountain.name.includes(
+          searchText.trim()
+        );
 
-    const matchesRegion =
-      selectedRegion === "전체" ||
-      mountain.regions.includes(selectedRegion);
+      const matchesRegion =
+        selectedRegion === "전체" ||
+        mountain.regions.includes(
+          selectedRegion
+        );
 
-    return matchesSearch && matchesRegion;
-  });
+      return matchesSearch && matchesRegion;
+    });
 
   const showMountainList =
     searchText.trim() !== "" ||
     selectedRegion !== "전체";
 
-  const completedCount = checklist.filter(
-    (item) => item.checked
-  ).length;
+  const completedCount =
+    checklist.filter(
+      (item) => item.checked
+    ).length;
 
   const progress =
     checklist.length === 0
       ? 0
       : Math.round(
-          (completedCount / checklist.length) * 100
+          (completedCount /
+            checklist.length) *
+            100
         );
 
   const isReady =
     checklist.length > 0 &&
     completedCount === checklist.length;
 
-  const toggleItem = (itemName: string) => {
+  const toggleItem = (
+    itemName: string
+  ) => {
     setChecklist((prev) =>
       prev.map((current) =>
         current.name === itemName
           ? {
               ...current,
-              checked: !current.checked,
+              checked:
+                !current.checked,
             }
           : current
       )
     );
   };
 
-  const changeMountain = (mountainId: string) => {
+  const changeMountain = (
+    mountainId: string
+  ) => {
     setSelectedMountainId(mountainId);
     setSearchText("");
 
-    const newBriefing = briefings.find(
-      (item) => item.mountainId === mountainId
-    );
+    const newBriefing =
+      briefings.find(
+        (item) =>
+          item.mountainId === mountainId
+      );
 
     if (newBriefing) {
       setChecklist(
-        newBriefing.checklist.map((item) => ({
-          ...item,
-        }))
+        newBriefing.checklist.map(
+          (item) => ({
+            ...item,
+          })
+        )
       );
     } else {
       setChecklist(
-        defaultChecklist.map((item) => ({
-          ...item,
-        }))
+        defaultChecklist.map(
+          (item) => ({
+            ...item,
+          })
+        )
       );
     }
   };
@@ -215,7 +336,9 @@ export default function Home() {
         <input
           type="text"
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
+          onChange={(e) =>
+            setSearchText(e.target.value)
+          }
           placeholder="산 이름 검색"
           className="mb-3 w-full rounded-xl border border-gray-300 bg-white p-3"
         />
@@ -224,7 +347,9 @@ export default function Home() {
           {regionOptions.map((region) => (
             <button
               key={region}
-              onClick={() => setSelectedRegion(region)}
+              onClick={() =>
+                setSelectedRegion(region)
+              }
               className={
                 selectedRegion === region
                   ? "rounded-full bg-green-700 px-3 py-2 text-sm font-semibold text-white"
@@ -239,33 +364,42 @@ export default function Home() {
         {showMountainList && (
           <div className="mb-4 rounded-xl border border-gray-200 bg-white p-2">
             <p className="px-3 py-2 text-sm text-gray-500">
-              검색 결과 {filteredMountains.length}개
+              검색 결과{" "}
+              {filteredMountains.length}개
             </p>
 
-            {filteredMountains.length > 0 ? (
-              filteredMountains.map((mountain) => (
-                <button
-                  key={mountain.id}
-                  onClick={() =>
-                    changeMountain(mountain.id)
-                  }
-                  className="flex w-full items-center justify-between rounded-lg p-3 text-left hover:bg-gray-100"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      {mountain.name}
-                    </p>
+            {filteredMountains.length >
+            0 ? (
+              filteredMountains.map(
+                (mountain) => (
+                  <button
+                    key={mountain.id}
+                    onClick={() =>
+                      changeMountain(
+                        mountain.id
+                      )
+                    }
+                    className="flex w-full items-center justify-between rounded-lg p-3 text-left hover:bg-gray-100"
+                  >
+                    <div>
+                      <p className="font-semibold">
+                        {mountain.name}
+                      </p>
 
-                    <p className="text-xs text-gray-500">
-                      {mountain.location}
-                    </p>
-                  </div>
+                      <p className="text-xs text-gray-500">
+                        {
+                          mountain.location
+                        }
+                      </p>
+                    </div>
 
-                  <span className="text-sm text-gray-500">
-                    {mountain.height.toLocaleString()}m
-                  </span>
-                </button>
-              ))
+                    <span className="text-sm text-gray-500">
+                      {mountain.height.toLocaleString()}
+                      m
+                    </span>
+                  </button>
+                )
+              )
             ) : (
               <p className="p-3 text-sm text-gray-500">
                 검색 결과가 없습니다.
@@ -289,21 +423,24 @@ export default function Home() {
 
           <p className="text-sm text-gray-600">
             해발{" "}
-            {selectedMountainInfo.height.toLocaleString()}m
+            {selectedMountainInfo.height.toLocaleString()}
+            m
           </p>
 
           <div className="mt-4">
-           <label className="mb-2 block text-sm font-semibold text-gray-700">
-             📅 산행 날짜
-           </label>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              📅 산행 날짜
+            </label>
 
-           <input
-             type="date"
-             value={hikingDate}
-             onChange={(e) =>
-               setHikingDate(e.target.value)
-             }
-             className="w-full rounded-xl border border-gray-300 bg-white p-3"
+            <input
+              type="date"
+              value={hikingDate}
+              onChange={(e) =>
+                setHikingDate(
+                  e.target.value
+                )
+              }
+              className="w-full rounded-xl border border-gray-300 bg-white p-3"
             />
           </div>
 
@@ -316,7 +453,6 @@ export default function Home() {
               {dday}
             </p>
           )}
-
         </div>
       </SectionCard>
 
@@ -326,10 +462,13 @@ export default function Home() {
         </p>
 
         <p>
-          강수확률 {selectedBriefing.weather.rain}
+          강수확률{" "}
+          {selectedBriefing.weather.rain}
         </p>
 
-        <p>{selectedBriefing.weather.rating}</p>
+        <p>
+          {selectedBriefing.weather.rating}
+        </p>
 
         <p className="font-semibold text-green-700">
           {selectedBriefing.weather.status}
@@ -341,21 +480,29 @@ export default function Home() {
           {selectedBriefing.course.name}
         </p>
 
-        <p>{selectedBriefing.course.duration}</p>
+        <p>
+          {selectedBriefing.course.duration}
+        </p>
 
         <InfoRow
           label="거리"
-          value={selectedBriefing.course.distance}
+          value={
+            selectedBriefing.course.distance
+          }
         />
 
         <InfoRow
           label="고도"
-          value={selectedBriefing.course.elevation}
+          value={
+            selectedBriefing.course.elevation
+          }
         />
 
         <InfoRow
           label="난이도"
-          value={selectedBriefing.course.difficulty}
+          value={
+            selectedBriefing.course.difficulty
+          }
         />
 
         <div className="mt-4 flex gap-2">
@@ -371,11 +518,16 @@ export default function Home() {
 
       <SectionCard title="🚗 이동">
         <p>
-          🚗 {selectedBriefing.transport.car}
+          🚗{" "}
+          {selectedBriefing.transport.car}
         </p>
 
         <p className="mt-2">
-          🚇 {selectedBriefing.transport.transit}
+          🚇{" "}
+          {
+            selectedBriefing.transport
+              .transit
+          }
         </p>
       </SectionCard>
 
@@ -383,7 +535,9 @@ export default function Home() {
         <Checklist
           items={checklist}
           onToggle={toggleItem}
-          completedCount={completedCount}
+          completedCount={
+            completedCount
+          }
           progress={progress}
         />
       </SectionCard>
