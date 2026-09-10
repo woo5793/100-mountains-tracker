@@ -267,6 +267,39 @@ export default function Home() {
     );
   };
   
+    const loadPlan = (plan: HikingPlan) => {
+      setSelectedMountainId(plan.mountainId);
+      setHikingDate(plan.hikingDate);
+  
+      setChecklist(
+        plan.checklist.map((item) => ({
+          ...item,
+        }))
+      );
+  
+      setSearchText("");
+      setSelectedRegion("전체");
+    };
+  
+    const deletePlan = (planId: string) => {
+      const confirmed = window.confirm(
+        "이 산행 계획을 삭제하시겠습니까?"
+      );
+  
+      if (!confirmed) return;
+  
+      const nextPlans = savedPlans.filter(
+        (plan) => plan.id !== planId
+      );
+  
+      setSavedPlans(nextPlans);
+  
+      localStorage.setItem(
+        PLANS_STORAGE_KEY,
+        JSON.stringify(nextPlans)
+      );
+    };
+  
   const selectedMountainInfo =
     mountains.find(
       (mountain) =>
@@ -555,31 +588,48 @@ export default function Home() {
               );
 
         return (
-          <div
-            key={plan.id}
-            className="rounded-xl border border-gray-200 bg-white p-4"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold">
-                  {mountain?.name ??
-                    plan.mountainId}
-                </p>
+        <div
+          key={plan.id}
+          className="rounded-xl border border-gray-200 bg-white p-4"
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="font-bold">
+                {mountain?.name ?? plan.mountainId}
+              </p>
 
-                <p className="text-sm text-gray-500">
-                  {formatDate(
-                    plan.hikingDate
-                  )}
-                </p>
-              </div>
+              <p className="text-sm text-gray-500">
+                {formatDate(plan.hikingDate)}
+              </p>
 
-              <span className="font-semibold text-green-700">
-                {calculateDday(
-                  plan.hikingDate
-                )}
-              </span>
+              {mountain && (
+                <p className="mt-1 text-xs text-gray-400">
+                  {mountain.location}
+                </p>
+              )}
             </div>
+
+            <span className="font-semibold text-green-700">
+              {calculateDday(plan.hikingDate)}
+            </span>
           </div>
+
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => loadPlan(plan)}
+              className="flex-1 rounded-lg bg-green-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-800"
+            >
+              불러오기
+            </button>
+
+            <button
+              onClick={() => deletePlan(plan.id)}
+              className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-200"
+            >
+              삭제
+            </button>
+          </div>
+        </div>
         );
       })}
     </div>
