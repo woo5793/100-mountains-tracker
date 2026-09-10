@@ -22,7 +22,13 @@ type SavedPlan = {
   checklist: ChecklistItem[];
 };
 
+type HikingPlan = SavedPlan & {
+  id: string;
+  createdAt: string;
+};
+
 const STORAGE_KEY = "summit100-hiking-plan";
+const PLANS_STORAGE_KEY = "summit100-hiking-plans";
 
 const defaultChecklist: ChecklistItem[] = [
   { name: "물", checked: false },
@@ -98,6 +104,9 @@ export default function Home() {
 
   const [storageLoaded, setStorageLoaded] =
     useState(false);
+
+  const [savedPlans, setSavedPlans] =
+    useState<HikingPlan[]>([]); 
 
   const initialBriefing =
     briefings.find(
@@ -205,6 +214,59 @@ export default function Home() {
     storageLoaded,
   ]);
 
+  useEffect(() => {
+    try {
+      const savedData =
+        localStorage.getItem(PLANS_STORAGE_KEY);
+  
+      if (savedData) {
+        const parsedPlans = JSON.parse(savedData);
+  
+        if (Array.isArray(parsedPlans)) {
+          setSavedPlans(parsedPlans);
+        }
+      }
+    } catch (error) {
+      console.error(
+        "산행 계획 목록을 불러오지 못했습니다.",
+        error
+      );
+    }
+  }, []);
+
+  const saveCurrentPlan = () => {
+    if (!hikingDate) {
+      alert("산행 날짜를 먼저 선택해 주세요.");
+      return;
+    }
+  
+    const newPlan: HikingPlan = {
+      id: `${selectedMountainId}-${hikingDate}`,
+      mountainId: selectedMountainId,
+      hikingDate,
+      checklist: checklist.map((item) => ({
+        ...item,
+      })),
+      createdAt: new Date().toISOString(),
+    };
+  
+    const nextPlans = [
+      ...savedPlans.filter(
+        (plan) => plan.id !== newPlan.id
+      ),
+      newPlan,
+    ].sort((a, b) =>
+      a.hikingDate.localeCompare(b.hikingDate)
+    );
+  
+    setSavedPlans(nextPlans);
+  
+    localStorage.setItem(
+      PLANS_STORAGE_KEY,
+      JSON.stringify(nextPlans)
+    );
+  };
+  
   const selectedMountainInfo =
     mountains.find(
       (mountain) =>
@@ -467,8 +529,62 @@ export default function Home() {
               {dday}
             </p>
           )}
+
+          <button
+            onClick={saveCurrentPlan}
+            disabled={!hikingDate}
+            className="mt-4 w-full rounded-xl bg-green-700 px-4 py-3 font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            산행 계획 저장
+          </button>
+        
         </div>
       </SectionCard>
+      
+      <SectionCard title="📋 내 산행 계획">
+        {savedPlans.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            저장된 산행 계획이 없습니다.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {savedPlans.map((plan) => {
+              const mountain = mountains.find(
+                (item) =>
+                  item.id === plan.mountainId
+              );
+
+        return (
+          <div
+            key={plan.id}
+            className="rounded-xl border border-gray-200 bg-white p-4"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold">
+                  {mountain?.name ??
+                    plan.mountainId}
+                </p>
+
+                <p className="text-sm text-gray-500">
+                  {formatDate(
+                    plan.hikingDate
+                  )}
+                </p>
+              </div>
+
+              <span className="font-semibold text-green-700">
+                {calculateDday(
+                  plan.hikingDate
+                )}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</SectionCard>
 
       <SectionCard title="🌤 날씨">
         <p className="text-3xl font-bold">
